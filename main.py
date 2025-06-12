@@ -2,8 +2,8 @@ import requests
 import json
 import random
 import os
-import time
 from datetime import datetime, timedelta
+from typing import Callable
 
 # --- Configuration for Caching ---
 CACHE_DIR = "wordle_cache"
@@ -125,7 +125,8 @@ def get_used_starters_from_date(date: datetime, mode: str = "hard") -> set:
 def generate_unused_wordle_starter(
         days: int = 3,
         hard: bool = True,
-        normal: bool = True
+        normal: bool = True,
+        custom_filter: Callable[[str], bool] = None
 ):
     """
     Fetches Wordle usage stats and a full list of valid words,
@@ -150,8 +151,13 @@ def generate_unused_wordle_starter(
         print("No unused valid words found. All valid words seem to have been used as solutions!")
         return None
 
-    print(sorted(list(unused_starters)))
     print(f"Found {len(unused_starters)} valid words that have not been used as starters in the past {days} days.")
+
+    if custom_filter:
+        unused_starters = list(filter(custom_filter, unused_starters))
+        print(f"Found {len(unused_starters)} that matched the provided filter")
+
+    print(sorted(list(unused_starters)))
 
     # Randomly select one of the unused words
     random_unused_word = random.choice(unused_starters)
@@ -159,6 +165,9 @@ def generate_unused_wordle_starter(
 
 
 if __name__ == "__main__":
-    word = generate_unused_wordle_starter()
+    def no_plurals(starter_word) -> bool:
+        return starter_word[-1] != 's'
+
+    word = generate_unused_wordle_starter(custom_filter=no_plurals)
     if word:
         print(f"\nYour random unused Wordle starter word is: {word.upper()}")
