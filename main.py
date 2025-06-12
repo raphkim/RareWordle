@@ -133,7 +133,7 @@ def is_not_plural(starter: str) -> bool:
 
 
 def generate_unused_wordle_starters(
-        days: int = 3,
+        days: int = 5,
         hard: bool = True,
         normal: bool = True,
         custom_filter: Callable[[str], bool] = None
@@ -147,7 +147,7 @@ def generate_unused_wordle_starters(
     used_starters = set()
 
     today = datetime.now()
-    for day_delta in range(days):
+    for day_delta in range(1, days + 1):
         date = today - timedelta(days=day_delta)
         formatted_date = date.strftime("%Y-%m-%d")
 
