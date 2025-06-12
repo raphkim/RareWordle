@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wordle Unused Starter Word Generator</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts - Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8; /* Light blue-gray background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+        .container {
+            background-color: #ffffff; /* White card background */
+            padding: 2.5rem;
+            border-radius: 1rem; /* More rounded corners */
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            max-width: 90%;
+            width: 600px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem; /* Increased spacing */
+        }
+        .button {
+            background-color: #4f46e5; /* Indigo 600 */
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 0.75rem; /* Rounded button */
+            font-weight: 600;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .button:hover {
+            background-color: #4338ca; /* Indigo 700 */
+            transform: translateY(-2px);
+        }
+        .button:active {
+            background-color: #3730a3; /* Indigo 800 */
+            transform: translateY(0);
+        }
+        .button:disabled {
+            background-color: #a78bfa; /* Light indigo for disabled state */
+            cursor: not-allowed;
+        }
+        .message {
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+            color: #333;
+            text-align: left;
+        }
+        .message.info {
+            background-color: #e0f2fe; /* Light blue */
+            border: 1px solid #90cdf4;
+            color: #2b6cb0;
+        }
+        .message.error {
+            background-color: #fee2e2; /* Light red */
+            border: 1px solid #ef4444;
+            color: #dc2626;
+        }
+        .result-word {
+            font-size: 2.5rem; /* Larger font for the word */
+            font-weight: 700;
+            color: #1a202c; /* Dark gray */
+            margin-top: 1rem;
+            letter-spacing: 0.1em; /* Spacing out letters */
+            background-color: #edf2f7; /* Light gray background for the word */
+            padding: 1rem 2rem;
+            border-radius: 0.75rem;
+            display: inline-block; /* To center it horizontally if content is shorter */
+            align-self: center; /* Center horizontally in flex column */
+            min-width: 150px; /* Ensure a minimum width */
+        }
+        .loading-spinner {
+            border: 4px solid #f3f3f3; /* Light grey */
+            border-top: 4px solid #4f46e5; /* Blue */
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto; /* Center the spinner */
+            display: none; /* Hidden by default */
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Form specific styles */
+        .form-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+            justify-content: center; /* Center form elements */
+        }
+        .form-group label {
+            font-weight: 600;
+            color: #4a5568; /* Gray 700 */
+        }
+        /* Style for the range slider */
+        .form-group input[type="range"] {
+            width: 150px; /* Adjust width as needed */
+            -webkit-appearance: none; /* Remove default styling */
+            appearance: none;
+            background: #cbd5e0; /* Track color */
+            outline: none;
+            height: 8px; /* Track height */
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .form-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #4f46e5; /* Thumb color */
+            cursor: grab;
+            margin-top: -6px; /* Center thumb vertically on track */
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+        }
+        .form-group input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #4f46e5;
+            cursor: grab;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+        }
+        .form-group .slider-value {
+            font-weight: 600;
+            color: #1a202c;
+            min-width: 25px; /* Ensure space for 2 digits */
+            text-align: right;
+        }
+        .form-group input[type="checkbox"] {
+            transform: scale(1.2); /* Slightly larger checkbox */
+            margin-right: 0.5rem;
+            cursor: pointer;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1.5rem;
+                border-radius: 0.75rem;
+            }
+            .button {
+                padding: 0.8rem 1.5rem;
+            }
+            .result-word {
+                font-size: 2rem;
+            }
+            .form-group {
+                flex-direction: column; /* Stack on small screens */
+                align-items: flex-start; /* Align labels to the left */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-3xl font-bold text-gray-800">Wordle Unused Starter Word</h1>
+        <p class="text-gray-600">
+            Generate a random Wordle word that hasn't been used as a solution or a common starter in recent games.
+        </p>
+
+        <!-- Parameter Controls -->
+        <div class="flex flex-col gap-3 p-4 bg-gray-50 rounded-lg shadow-inner">
+            <div class="form-group">
+                <label for="daysInput">Days to Consider:</label>
+                <input type="range" id="daysInput" value="5" min="1" max="7" class="focus:ring-indigo-500 focus:border-indigo-500">
+                <span id="daysValue" class="slider-value">5</span>
+            </div>
+            <div class="form-group">
+                <input type="checkbox" id="hardModeCheckbox" checked>
+                <label for="hardModeCheckbox">Include Hard Mode Stats</label>
+            </div>
+            <div class="form-group">
+                <input type="checkbox" id="normalModeCheckbox" checked>
+                <label for="normalModeCheckbox">Include Normal Mode Stats</label>
+            </div>
+            <div class="form-group">
+                <input type="checkbox" id="pluralCheckBox" checked>
+                <label for="pluralCheckBox">Exclude Plural Words</label>
+            </div>
+        </div>
+
+        <div class="flex flex-col items-center justify-center gap-4">
+            <button id="generateButton" class="button">
+                Generate Unused Word
+            </button>
+            <div id="loadingSpinner" class="loading-spinner"></div>
+        </div>
+
+        <div id="messageArea" class="message"></div>
+        <div id="resultWord" class="result-word hidden"></div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const generateButton = document.getElementById('generateButton');
+        const messageArea = document.getElementById('messageArea');
+        const resultWord = document.getElementById('resultWord');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+
+        // New UI Elements
+        const daysInput = document.getElementById('daysInput');
+        const daysValueSpan = document.getElementById('daysValue'); // Span to display slider value
+        const hardModeCheckbox = document.getElementById('hardModeCheckbox');
+        const pluralCheckBox = document.getElementById('pluralCheckBox');
+
+        // Backend API Endpoint
+        // If your Flask app runs on a different port or host, update this.
+        const API_BASE_URL = 'https://rare-wordle-starter-431471474096.us-central1.run.app/api';
+
+        // Helper function to display messages
+        function displayMessage(message, type = 'info') {
+            messageArea.textContent = message;
+            messageArea.className = `message ${type}`;
+        }
+
+        // Helper function to clear messages
+        function clearMessages() {
+            messageArea.textContent = '';
+            messageArea.className = 'message';
+        }
+
+        // Event listener for the slider to update the displayed value
+        daysInput.addEventListener('input', () => {
+            daysValueSpan.textContent = daysInput.value;
+        });
+
+        // Main function to generate the Wordle starter word
+        async function generateWordleStarter() {
+            generateButton.disabled = true;
+            resultWord.classList.add('hidden');
+            resultWord.textContent = '';
+            clearMessages();
+            loadingSpinner.style.display = 'block';
+            displayMessage('Requesting unused Wordle word from backend...');
+
+            // Get parameters from UI
+            const daysToConsider = daysInput.value; // Value from slider
+            const includeHardMode = hardModeCheckbox.checked;
+            const includeNormalMode = normalModeCheckbox.checked;
+            const excludePlural = pluralCheckBox.checked;
+
+            try {
+                // Construct the API URL with dynamic parameters
+                const params = new URLSearchParams({
+                    days: daysToConsider,
+                    hard: includeHardMode,
+                    normal: includeNormalMode,
+                    excludePlural: excludePlural
+                }).toString();
+
+                const response = await fetch(`${API_BASE_URL}/generate_word?${params}`);
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || `Backend error: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+
+                if (data.word === 'N/A') {
+                    displayMessage(data.message, 'info');
+                } else {
+                    displayMessage(`Generated word: ${data.message}`);
+                    resultWord.textContent = data.word;
+                    resultWord.classList.remove('hidden');
+                }
+
+            } catch (error) {
+                displayMessage(`An error occurred: ${error.message}`, 'error');
+                console.error("Full error:", error);
+            } finally {
+                loadingSpinner.style.display = 'none';
+                generateButton.disabled = false;
+            }
+        }
+
+        // Event Listener
+        generateButton.addEventListener('click', generateWordleStarter);
+
+        // Initial message on load and set initial slider value display
+        displayMessage("Adjust parameters and click 'Generate Unused Word'.", 'info');
+        daysValueSpan.textContent = daysInput.value; // Set initial value display
+    </script>
+</body>
+</html>
