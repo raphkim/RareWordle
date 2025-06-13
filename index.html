@@ -175,7 +175,7 @@
     <div class="container">
         <h1 class="text-3xl font-bold text-gray-800">Wordle Unused Starter Word</h1>
         <p class="text-gray-600">
-            Generate a random Wordle word that hasn't been used as a solution or a common starter in recent games.
+            Generate a random Wordle word that hasn't been used as a starter in recent games.
         </p>
 
         <!-- Parameter Controls -->
@@ -194,8 +194,8 @@
                 <label for="normalModeCheckbox">Include Normal Mode Stats</label>
             </div>
             <div class="form-group">
-                <input type="checkbox" id="pluralCheckBox" checked>
-                <label for="pluralCheckBox">Exclude Plural Words</label>
+                <input type="checkbox" id="pluralCheckbox" checked>
+                <label for="pluralCheckbox">Exclude Plural Words</label>
             </div>
         </div>
 
@@ -219,13 +219,16 @@
 
         // New UI Elements
         const daysInput = document.getElementById('daysInput');
-        const daysValueSpan = document.getElementById('daysValue'); // Span to display slider value
+        const daysValueSpan = document.getElementById('daysValue');
         const hardModeCheckbox = document.getElementById('hardModeCheckbox');
-        const pluralCheckBox = document.getElementById('pluralCheckBox');
+        const pluralCheckbox = document.getElementById('pluralCheckbox');
 
         // Backend API Endpoint
-        // If your Flask app runs on a different port or host, update this.
-        const API_BASE_URL = 'https://rare-wordle-starter-431471474096.us-central1.run.app/api';
+        const API_BASE_URL = 'https://rare-wordle-starter-431471474096.us-central1.run.app/api'
+
+        // Frontend Caching Configuration
+        const CACHE_KEY = 'wordle_candidates_cache';
+        const CACHE_EXPIRY_MINUTES = 60; // Cache the list of candidates for 60 minutes (1 hour)
 
         // Helper function to display messages
         function displayMessage(message, type = 'info') {
@@ -244,6 +247,15 @@
             daysValueSpan.textContent = daysInput.value;
         });
 
+        // Function to get a random word from a list
+        function getRandomWord(candidates) {
+            if (!candidates || candidates.length === 0) {
+                return null;
+            }
+            const randomIndex = Math.floor(Math.random() * candidates.length);
+            return candidates[randomIndex];
+        }
+
         // Main function to generate the Wordle starter word
         async function generateWordleStarter() {
             generateButton.disabled = true;
@@ -251,47 +263,101 @@
             resultWord.textContent = '';
             clearMessages();
             loadingSpinner.style.display = 'block';
-            displayMessage('Requesting unused Wordle word from backend...');
 
-            // Get parameters from UI
-            const daysToConsider = daysInput.value; // Value from slider
+            // Get parameters from UI for backend call (even if serving from cache, parameters define the desired list)
+            const daysToConsider = daysInput.value;
             const includeHardMode = hardModeCheckbox.checked;
             const includeNormalMode = normalModeCheckbox.checked;
-            const excludePlural = pluralCheckBox.checked;
+            const excludePlural = pluralCheckbox.checked;
 
-            try {
-                // Construct the API URL with dynamic parameters
-                const params = new URLSearchParams({
-                    days: daysToConsider,
-                    hard: includeHardMode,
-                    normal: includeNormalMode,
-                    excludePlural: excludePlural
-                }).toString();
+            let candidates = [];
+            let message = '';
+            let fromCache = false;
 
-                const response = await fetch(`${API_BASE_URL}/generate_word?${params}`);
+            // 1. Try to load from local cache
+            const cachedData = localStorage.getItem(CACHE_KEY);
+            if (cachedData) {
+                const parsedData = JSON.parse(cachedData);
+                const cacheTimestamp = parsedData.timestamp;
+                const currentTime = new Date().getTime();
 
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.message || `Backend error: ${response.statusText}`);
+                // Check if cache is still valid based on expiry and parameters
+                const isCacheValid = (currentTime - cacheTimestamp) < (CACHE_EXPIRY_MINUTES * 60 * 1000) &&
+                                     parsedData.params.days == daysToConsider &&
+                                     parsedData.params.hard == includeHardMode &&
+                                     parsedData.params.normal == includeNormalMode;
+
+                if (isCacheValid) {
+                    candidates = parsedData.candidates;
+                    message = `There is a total of ${candidates.length} unused words.`;
+                    fromCache = true;
+                    displayMessage(message);
+                    console.log("Frontend: Using cached data.");
                 }
-
-                const data = await response.json();
-
-                if (data.word === 'N/A') {
-                    displayMessage(data.message, 'info');
-                } else {
-                    displayMessage(`Generated word: ${data.message}`);
-                    resultWord.textContent = data.word;
-                    resultWord.classList.remove('hidden');
-                }
-
-            } catch (error) {
-                displayMessage(`An error occurred: ${error.message}`, 'error');
-                console.error("Full error:", error);
-            } finally {
-                loadingSpinner.style.display = 'none';
-                generateButton.disabled = false;
             }
+
+            // 2. If not from cache, fetch from backend
+            if (!fromCache) {
+                displayMessage('Fetching a list of unused starters...');
+                try {
+                    // Construct the API URL with dynamic parameters
+                    const params = new URLSearchParams({
+                        days: daysToConsider,
+                        hard: includeHardMode,
+                        normal: includeNormalMode,
+                        excludePlural: excludePlural
+                    }).toString();
+
+                    const response = await fetch(`${API_BASE_URL}/generate_word_candidates?${params}`); // Updated endpoint
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.message || `Backend error: ${response.statusText}`);
+                    }
+
+                    const data = await response.json();
+                    candidates = data.candidates;
+                    message = data.message;
+                    displayMessage(message);
+                    console.log("Frontend: Fetched new data from backend.");
+
+                    // Store new data in local cache
+                    const cacheData = {
+                        candidates: candidates,
+                        timestamp: new Date().getTime(),
+                        params: { // Store parameters used to generate this cache
+                            days: daysToConsider,
+                            hard: includeHardMode,
+                            normal: includeNormalMode,
+                            excludePlural: excludePlural
+                        }
+                    };
+                    localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
+                    console.log("Frontend: Candidates list cached locally.");
+
+                } catch (error) {
+                    displayMessage(`An error occurred: ${error.message}`, 'error');
+                    console.error("Full error:", error);
+                    loadingSpinner.style.display = 'none';
+                    generateButton.disabled = false;
+                    return; // Exit if fetching fails
+                }
+            }
+
+            // 3. Pick a random word from the available candidates
+            const selectedWord = getRandomWord(candidates);
+
+            if (selectedWord === null) {
+                displayMessage("No unused valid words found based on criteria. Try different parameters!", 'info');
+                resultWord.textContent = 'N/A';
+            } else {
+                resultWord.textContent = selectedWord.toUpperCase();
+                resultWord.classList.remove('hidden');
+                displayMessage(`Your random unused Wordle starter: ${selectedWord.toUpperCase()}. ${message}`, 'info');
+            }
+
+            loadingSpinner.style.display = 'none';
+            generateButton.disabled = false;
         }
 
         // Event Listener

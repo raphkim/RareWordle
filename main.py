@@ -176,10 +176,10 @@ def generate_unused_wordle_starters(
 
 
 # --- API Endpoints ---
-@app.route('/api/generate_word', methods=['GET'])
-def generate_word():
+@app.route('/api/generate_word_candidates', methods=['GET'])
+def generate_word_candidates():
     """
-    API endpoint to generate a random unused Wordle starter word.
+    API endpoint to generate a list of all random unused Wordle starter words.
     Accepts optional query parameters:
     - days (int): Number of past days to consider (default: 5)
     - hard (bool): Include hard mode stats (default: true)
@@ -202,19 +202,17 @@ def generate_word():
         print("No unused valid words found. All valid words seem to have been used as starters!")
         return jsonify({"word": "N/A", "message": "No unused valid words found."}), 200
 
-    random_unused_word = random.choice(unused_starters)
-    print(f"Generated word: {random_unused_word.upper()}")
-
     return jsonify({
-        "word": random_unused_word.upper(),
-        "message": f"Generated word considering last {days} days."
+        "candidates": unused_starters,
+        "message": f"Generated list of {len(unused_starters)} unused words considering last {days} days.",
+        "from_cache": False  # Indicates if data came directly from a fresh backend calculation
     }), 200
 
 
 @app.route('/')
 def home():
     """Simple home route, usually for testing if the server is up."""
-    return "Wordle Backend is running! Access /api/generate_word to get a word."
+    return "Wordle Backend is running! Access /api/generate_word_candidates to get starter candidates."
 
 
 if __name__ == '__main__':
