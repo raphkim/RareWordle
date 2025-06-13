@@ -211,6 +211,18 @@ def generate_word_candidates():
     }), 200
 
 
+@app.route('/api/check_date', methods=['GET'])
+def check_date():
+    today_str = datetime.now().strftime("%m-%d")
+    try:
+        with open('/mnt/easter-egg/mystery.json', 'r', encoding='utf-8') as f:
+            result = json.load(f).get(today_str)
+    except (IOError, json.JSONDecodeError) as e:
+        result = None
+
+    return jsonify({"result": result}), 200
+
+
 @app.route('/')
 def home():
     """Simple home route, usually for testing if the server is up."""

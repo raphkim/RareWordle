@@ -171,6 +171,7 @@
         }
     </style>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%2390CDF4'/%3E%3Ctext x='50%' y='65%' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='60' fill='%23FFFFFF' font-weight='bold'%3E%E1%BA%84%3C/text%3E%3C/svg%3E">
+    <script src="https://cdn.jsdelivr.net/npm/js-confetti@latest/dist/js-confetti.browser.js"></script>
 </head>
 <body>
     <div class="container">
@@ -230,6 +231,34 @@
         // Frontend Caching Configuration
         const CACHE_KEY = 'wordle_candidates_cache';
         const CACHE_EXPIRY_MINUTES = 60; // Cache the list of candidates for 60 minutes (1 hour)
+
+        // Easter Egg
+        const confetti = new JSConfetti()
+        const sequence = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'KeyB', 'KeyA'];
+        let seqIndex = 0;
+        document.addEventListener('keydown', (event) => {
+            if (event.code === sequence[seqIndex]) {
+                seqIndex++;
+                if (seqIndex === sequence.length) {
+                    (async () => {
+                        const response = await fetch(`${API_BASE_URL}/check_date`);
+                        if (!response.ok) {
+                            return;
+                        }
+
+                        const data = await response.json();
+                        message = data.result;
+                        if (!!message) {
+                            displayMessage(message);
+                            confetti.addConfetti()
+                        }
+                    })();
+                    seqIndex = 0;
+                }
+            } else {
+                seqIndex = 0;
+            }
+        });
 
         // Helper function to display messages
         function displayMessage(message, type = 'info') {
@@ -309,7 +338,7 @@
                         excludePlural: excludePlural
                     }).toString();
 
-                    const response = await fetch(`${API_BASE_URL}/generate_word_candidates?${params}`); // Updated endpoint
+                    const response = await fetch(`${API_BASE_URL}/generate_word_candidates?${params}`);
 
                     if (!response.ok) {
                         const errorData = await response.json();
