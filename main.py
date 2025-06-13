@@ -17,6 +17,7 @@ SOLUTIONS_CACHE_DIR = os.path.join(CACHE_DIR, "solutions")
 STARTERS_CACHE_DIR = os.path.join(CACHE_DIR, "starters")
 VALID_WORDS_CACHE_FILE = os.path.join(CACHE_DIR, "valid_words.txt")
 CACHE_EXPIRY_HOURS = 24  # Cache expires after 24 hours
+CACHE_EXPIRY_TODAY_STATS_HOURS = 1  # Today's usage statistics expires in 1 hour
 
 VALID_WORDS_URL = "https://gist.github.com/dracos/dd0668f281e685bad51479e5acaadb93/raw"
 WORDLE_SOLUTION_BASE_URL = "https://www.nytimes.com/svc/wordle/v2/"
@@ -98,8 +99,9 @@ def get_used_starters_from_date(date: datetime, mode: str = "hard") -> set:
         return set()
 
     from_puzzle_today = datetime.today().date() == date.date()
+    expiry_hours = CACHE_EXPIRY_TODAY_STATS_HOURS if from_puzzle_today else CACHE_EXPIRY_HOURS
     cache_filepath = os.path.join(STARTERS_CACHE_DIR, f"{formatted_date}_{mode}.json")
-    if _is_cache_valid(cache_filepath, CACHE_EXPIRY_HOURS) and not from_puzzle_today:
+    if _is_cache_valid(cache_filepath, expiry_hours):
         print(f"Loading Wordle starter stats for {formatted_date} ({mode}) from cache...")
         try:
             with open(cache_filepath, 'r', encoding='utf-8') as f:
@@ -110,7 +112,7 @@ def get_used_starters_from_date(date: datetime, mode: str = "hard") -> set:
     wordle_stats_url = f"{WORDLE_STATS_BASE_URL}{solution}/guesses-by-round-{mode}.json"
 
     try:
-        print("Fetching Wordle usage statistics...")
+        print(f"Fetching Wordle usage statistics for {formatted_date}...")
         response_stats = requests.get(wordle_stats_url)
         response_stats.raise_for_status()  # Raise an exception for bad status codes
         wordle_data = response_stats.json()
