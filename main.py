@@ -90,14 +90,16 @@ def get_valid_words() -> set:
     return all_valid_words
 
 
-def get_used_starters_from_date(formatted_date: str, mode: str = "hard") -> set:
+def get_used_starters_from_date(date: datetime, mode: str = "hard") -> set:
+    formatted_date = date.strftime("%Y-%m-%d")
     solution = get_solution_for_date(formatted_date)
     if not solution:
         print(f"Could not retrieve solution for {formatted_date}, skipping starter stats for this date.")
         return set()
 
+    from_puzzle_today = datetime.today().date() == date.date()
     cache_filepath = os.path.join(STARTERS_CACHE_DIR, f"{formatted_date}_{mode}.json")
-    if _is_cache_valid(cache_filepath, CACHE_EXPIRY_HOURS):
+    if _is_cache_valid(cache_filepath, CACHE_EXPIRY_HOURS) and not from_puzzle_today:
         print(f"Loading Wordle starter stats for {formatted_date} ({mode}) from cache...")
         try:
             with open(cache_filepath, 'r', encoding='utf-8') as f:
@@ -147,14 +149,13 @@ def generate_unused_wordle_starters(
     used_starters = set()
 
     today = datetime.now()
-    for day_delta in range(1, days + 1):
+    for day_delta in range(days):
         date = today - timedelta(days=day_delta)
-        formatted_date = date.strftime("%Y-%m-%d")
 
         if normal:
-            used_starters.update(get_used_starters_from_date(formatted_date, "normal"))
+            used_starters.update(get_used_starters_from_date(date, "normal"))
         if hard:
-            used_starters.update(get_used_starters_from_date(formatted_date, "hard"))
+            used_starters.update(get_used_starters_from_date(date, "hard"))
 
     # Find words that are valid but haven't been used as solutions
     unused_starters = [w for w in all_valid_words if w not in used_starters]
